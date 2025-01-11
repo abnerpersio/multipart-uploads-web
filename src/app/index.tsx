@@ -1,16 +1,19 @@
-import { FILE_CHUNK_SIZE } from '@/constants/file';
 import { Button } from '@/ui/components/shared/button';
 import { Input } from '@/ui/components/shared/input';
 import { Toaster } from '@/ui/components/shared/toaster';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Uploader } from './lib/uploader';
-import { completeUpload } from './services/complete-upload';
-import { prepareUpload } from './services/prepare-upload';
+import { useUploadFile } from './hooks/use-upload-file';
 
 export default function App() {
-  const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+
+  const { isUploading, mutateAsync } = useUploadFile({
+    onSuccess: (file) => {
+      toast.success(`Upload do arquivo ${file.name} finalizado`);
+      setFile(null);
+    },
+  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -19,29 +22,7 @@ export default function App() {
       return;
     }
 
-    const totalChunks = Math.ceil(file.size / FILE_CHUNK_SIZE);
-
-    if (totalChunks < 1) {
-      toast('Handle default upload');
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      const { key, parts, uploadId } = await prepareUpload({ fileName: file.name, totalChunks });
-
-      const uploader = new Uploader({ file, parts });
-      const completedParts = await uploader.upload();
-
-      await completeUpload({ uploadId, fileKey: key, parts: completedParts });
-
-      toast.success(`Upload do arquivo ${file.name} finalizado`);
-
-      setFile(null);
-    } finally {
-      setIsUploading(false);
-    }
+    await mutateAsync({ file });
   };
 
   return (

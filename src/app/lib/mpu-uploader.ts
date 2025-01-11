@@ -1,5 +1,5 @@
 import { FILE_CHUNK_SIZE } from '@/constants/file';
-import { uploadFile } from '../services/uploada-file';
+import { uploadFilePart } from '../services/upload-file';
 
 type Part = {
   url: string;
@@ -11,7 +11,7 @@ type Params = {
   file: File;
 };
 
-export class Uploader {
+export class MPUUploader {
   private readonly chunkSize = 6;
   private readonly chunks: Part[][] = [[]];
   private readonly file: File;
@@ -39,7 +39,7 @@ export class Uploader {
     const end = Math.min(chunkStart + FILE_CHUNK_SIZE, this.file.size);
     const chunk = this.file.slice(chunkStart, end);
 
-    const { entityTag } = await uploadFile({ url, blob: chunk });
+    const { entityTag } = await uploadFilePart({ url, blob: chunk }, 0, index === 1);
 
     return { partNumber, entityTag };
   }
@@ -60,9 +60,5 @@ export class Uploader {
 
       this.chunks[currentIndex].push(part);
     });
-  }
-
-  private formatEntityTag(etag: string) {
-    return etag?.replace(/"/g, '');
   }
 }
